@@ -7,7 +7,6 @@ use std::{
     collections::{HashMap, HashSet},
     os::unix::fs::PermissionsExt,
     path::PathBuf,
-    str::FromStr,
 };
 use watcher::relinker;
 
@@ -20,15 +19,13 @@ mod hotlink;
 mod output;
 mod watcher;
 
-const HOME_DIR: &str = env!("HOME");
-
 // These args should only enable very basic usage of the tool for now.
 // Handle the elaborate cases through the config file instead
 #[derive(Debug, Parser)]
 struct Args {
     /// Path to the config files, defaults to ~/.config
-    #[arg(long, default_value = PathBuf::from_str(HOME_DIR).unwrap().join(".config").into_os_string())]
-    config_dir: PathBuf,
+    #[arg(long)]
+    config_dir: Option<PathBuf>,
 
     /// Path to the folder which contains all of the config sources
     #[arg(long, short)]
@@ -55,10 +52,15 @@ fn main() -> Result<(), Whatever> {
 
     let args = Args::parse();
 
+    let config_dir = args.config_dir.unwrap_or_else(|| {
+        let home = std::env::var("HOME").expect("HOME environment variable not set");
+        PathBuf::from(home).join(".config")
+    });
+
     tracing_subscriber::fmt::init();
 
     // This function is cheap enough that we can run it every time.
-    fix_bad_state(&args.config_dir);
+    fix_bad_state(&config_dir);
     if args.fix {
         tracing::info!("Fix flag specified - exiting");
         return Ok(());
@@ -74,10 +76,10 @@ fn main() -> Result<(), Whatever> {
     let hotmanager_config = args
         .hotmanager_config_path
         .map(|hotmanager_config_path| {
-            config::Config::from_file(hotmanager_config_path, &args.config_dir)
+            config::Config::from_file(hotmanager_config_path, &config_dir)
         })
         .unwrap_or(Config::new(
-            &args.config_dir,
+            &config_dir,
             Default::default(),
             Default::default(),
             false,
@@ -89,7 +91,7 @@ fn main() -> Result<(), Whatever> {
 
     // Only detect symlinks - actual files can be dealt with normally
     let autodetected_config_paths = detect_config_paths(
-        &args.config_dir,
+        &config_dir,
         &hotmanager_config.exclude_set,
         true,
         false,
@@ -131,7 +133,7 @@ fn main() -> Result<(), Whatever> {
                 .filter_map(|path| {
                     let tmp_file = tmp_dir
                         .path()
-                        .join(path.strip_prefix(&args.config_dir).unwrap());
+                        .join(path.strip_prefix(&config_dir).unwrap());
                     std::fs::create_dir_all(tmp_file.parent().unwrap()).unwrap();
                     std::fs::copy(path, &tmp_file)
                         .inspect_err(|e| {
