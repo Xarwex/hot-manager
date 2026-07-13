@@ -30,11 +30,6 @@
           src = pkgs.lib.cleanSource ./.;
 
           cargoLock.lockFile = ./Cargo.lock;
-
-          nativeBuildInputs = with pkgs; [
-            cargo-auditable
-            cargo-deny
-          ];
         };
 
         devShells.default = pkgs.mkShell {
