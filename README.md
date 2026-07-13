@@ -98,6 +98,10 @@ By default, hot-manager ignores:
 - Steam singleton files: `steam/**/Singleton*`
 - sops-nix secrets: `sops-nix/**/*`
 
+## Contributing
+
+I am accepting contributions, but do raise an issue first to discuss :) Note that this is a small side project, but I will do my best to engage with any willing contributors in my spare time.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
