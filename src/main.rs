@@ -51,6 +51,9 @@ fn main() -> Result<(), Whatever> {
     ctrlc::set_handler(move || exit_tx.send(()).unwrap()).unwrap();
 
     let args = Args::parse();
+    let dotfiles_config_dir = args
+        .dotfiles_config_dir
+        .map(|path| std::path::absolute(path).unwrap());
 
     let config_dir = args.config_dir.unwrap_or_else(|| {
         let home = std::env::var("HOME").expect("HOME environment variable not set");
@@ -66,7 +69,7 @@ fn main() -> Result<(), Whatever> {
         return Ok(());
     }
 
-    let tmp_dir = if let Some(ref dotfiles_config_dir) = args.dotfiles_config_dir {
+    let tmp_dir = if let Some(ref dotfiles_config_dir) = dotfiles_config_dir {
         tempfile::TempDir::with_prefix_in("hot-manager.", dotfiles_config_dir)
     } else {
         tempfile::TempDir::with_prefix("hot-manager.")
@@ -90,15 +93,10 @@ fn main() -> Result<(), Whatever> {
     output::print_mappings("Config", &hotmanager_config.mappings);
 
     // Only detect symlinks - actual files can be dealt with normally
-    let autodetected_config_paths = detect_config_paths(
-        &config_dir,
-        &hotmanager_config.exclude_set,
-        true,
-        false,
-    )
-    .unwrap();
+    let autodetected_config_paths =
+        detect_config_paths(&config_dir, &hotmanager_config.exclude_set, true, false).unwrap();
 
-    let autodetected_mappings = if let Some(ref dotfiles_config_dir) = args.dotfiles_config_dir {
+    let autodetected_mappings = if let Some(ref dotfiles_config_dir) = dotfiles_config_dir {
         // Do not detect symlinks since the watcher will not deal with them properly
         let autodetected_dotfiles_paths =
             detect_config_paths(dotfiles_config_dir, &HashSet::default(), false, true).unwrap();
@@ -131,9 +129,7 @@ fn main() -> Result<(), Whatever> {
             autodetected_config_paths
                 .difference(&mapped_paths)
                 .filter_map(|path| {
-                    let tmp_file = tmp_dir
-                        .path()
-                        .join(path.strip_prefix(&config_dir).unwrap());
+                    let tmp_file = tmp_dir.path().join(path.strip_prefix(&config_dir).unwrap());
                     std::fs::create_dir_all(tmp_file.parent().unwrap()).unwrap();
                     std::fs::copy(path, &tmp_file)
                         .inspect_err(|e| {
