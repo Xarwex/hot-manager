@@ -118,6 +118,7 @@ pub(crate) fn hotlink(
         });
     }
 
+    // TODO: this part should be atomic - the rename and the symlink
     tracing::debug!("Renaming {original_file_path:?} -> {original_file_backed_path:?}");
     std::fs::rename(&original_file_path, &original_file_backed_path)?;
 
@@ -148,20 +149,31 @@ mod tests {
 
         let hotlinked_file = hotlink(original_file_path.clone(), config_path.clone()).unwrap();
 
-        assert!(fs::symlink_metadata(&original_file_path)
-            .unwrap()
-            .file_type()
-            .is_symlink());
-        assert_eq!(fs::read_to_string(&original_file_path).unwrap(), "new content");
+        assert!(
+            fs::symlink_metadata(&original_file_path)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        assert_eq!(
+            fs::read_to_string(&original_file_path).unwrap(),
+            "new content"
+        );
         let backup_path = dir.path().join("original.conf.hotlink");
         assert!(backup_path.exists());
-        assert_eq!(fs::read_to_string(&backup_path).unwrap(), "original content");
+        assert_eq!(
+            fs::read_to_string(&backup_path).unwrap(),
+            "original content"
+        );
 
         drop(hotlinked_file);
 
         assert!(!original_file_path.is_symlink());
         assert!(original_file_path.is_file());
-        assert_eq!(fs::read_to_string(&original_file_path).unwrap(), "original content");
+        assert_eq!(
+            fs::read_to_string(&original_file_path).unwrap(),
+            "original content"
+        );
         assert!(!backup_path.exists());
     }
 
@@ -173,9 +185,12 @@ mod tests {
         fs::write(&config_path, "new content").unwrap();
 
         let result = hotlink(original_file_path, config_path);
-        assert!(matches!(result, Err(HotlinkError::OriginalIsNotAFile { .. })));
+        assert!(matches!(
+            result,
+            Err(HotlinkError::OriginalIsNotAFile { .. })
+        ));
     }
-    
+
     #[test]
     fn test_hotlink_new_not_a_file() {
         let dir = tempdir().unwrap();
@@ -199,7 +214,10 @@ mod tests {
         fs::write(&backup_path, "backup content").unwrap();
 
         let result = hotlink(original_file_path, config_path);
-        assert!(matches!(result, Err(HotlinkError::HotlinkedFileExists { .. })));
+        assert!(matches!(
+            result,
+            Err(HotlinkError::HotlinkedFileExists { .. })
+        ));
     }
 
     #[test]
@@ -232,14 +250,20 @@ mod tests {
 
         let hotlinked_file = hotlink(original_file_path.clone(), config_path.clone()).unwrap();
 
-        let mtime_before = fs::symlink_metadata(&original_file_path).unwrap().modified().unwrap();
-        
+        let mtime_before = fs::symlink_metadata(&original_file_path)
+            .unwrap()
+            .modified()
+            .unwrap();
+
         // We need to sleep a bit to make sure the modification time is different.
         std::thread::sleep(std::time::Duration::from_millis(10));
-        
+
         hotlinked_file.relink().unwrap();
 
-        let mtime_after = fs::symlink_metadata(&original_file_path).unwrap().modified().unwrap();
+        let mtime_after = fs::symlink_metadata(&original_file_path)
+            .unwrap()
+            .modified()
+            .unwrap();
 
         assert!(mtime_after > mtime_before);
     }

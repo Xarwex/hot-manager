@@ -64,9 +64,7 @@ impl EventHandler for Relinker {
                         if let Some(hotlinked_file) = self.hotlinks.get(file_path)
                             && let Err(e) = hotlinked_file.relink()
                         {
-                            tracing::error!(
-                                "Got an error {e} while trying to relink {file_path:?}"
-                            )
+                            tracing::error!("Got an error {e} while trying to relink {file_path:?}")
                         }
                     }
                 }
