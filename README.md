@@ -105,8 +105,7 @@ Additional behavior worth knowing:
 - **Auto-recovery**: on every startup the program scans `config_dir/**/*.hotlink`
   and restores any leftover backups to their original paths, so a crash that left
   stale `.hotlink` files is self-healing. `--fix` runs this step and then exits.
-- **Watching**: the watcher runs in poll mode with a ~1 second interval and
-  watches directories (not individual files). Editing a file triggers a
+- **Watching**: Editing a file triggers a
   `relink` when the file handle is closed after a write.
 - **Temporary mappings folder**: named `hot-manager.<random_characters>`. It is
   created in the system temp dir, or inside `--dotfiles-config-dir` when that

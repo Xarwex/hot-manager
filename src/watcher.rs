@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, time::Duration};
+use std::{collections::HashMap, path::PathBuf};
 
 use notify::{
     Config, EventHandler, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
@@ -6,7 +6,6 @@ use notify::{
 };
 
 use crate::hotlink::HotlinkedFile;
-const POLL_INTERVAL: Duration = Duration::from_secs(1);
 
 /// This function uses an inotify watcher to monitor the hotlinked files and relink them every time
 /// they are changed.
@@ -30,7 +29,7 @@ pub fn relinker(
             hotlinks,
             shutdown_channel_tx,
         },
-        Config::default().with_poll_interval(POLL_INTERVAL),
+        Config::default(),
     )
     .unwrap();
 
